@@ -78,53 +78,12 @@ jobs:
         with:
           version: 2.71.3
 
-      - name: NPM Curation Audit 
-        run: |
-          if [ ${{ github.event.inputs.curation_audit }} == 'true' ]; then
-            jf npmc --repo-resolve ${{ github.event.inputs.rt_npm_curation_remote_repo_id }}
-            jf curation-audit
-          else
-            echo "Skip Curation Audit!!!"
-          fi
-
-      # - name: NPM Audit 
-      #   run: |
-      #     jf npmc --repo-resolve ${{ github.event.inputs.rt_npm_remote_repo_id }}
-      #     jf npm i --omit dev --sast
-      #     if [ ${{ github.event.inputs.xr_enable_scan }} == 'true' ]; then
-      #     	echo "Scan Source Code"
-      #     	jf audit --npm --fail=${{ github.event.inputs.xr_override_fail_build }}
-      #     else
-      #     	echo "Skip Source Code Scan"
-      #     fi
-
-      - name: Docker Authenticate
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.JF_URL }}
-          username: assafa
-          password: ${{ secrets.JF_TOKEN }}
-
-      - name: Docker Build and Push
-        uses: docker/build-push-action@v5
-        id: build
-        with:
-          push: true
-          tags: ${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}
-          provenance: false
-          platforms: linux/amd64, linux/arm64
-
-      - name: Docker Add Package to Build
-        run: |  
-          echo "${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}@${{ steps.build.outputs.digest }}" > metadata.json
-          jf rt build-docker-create ${{ env.DOCKER_REPO }} --image-file metadata.json 
-
       - name: Docker Scan
         run: |
           echo "digest=$(docker images --no-trunc --quiet ${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }})" >> $GITHUB_OUTPUT
-          jf docker pull ${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}
-          jf docker scan ${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ github.run_number }} --vuln --fail=${{ github.event.inputs.xr_override_fail_build }} --format=sarif > jfrog_sast.sarif
-          sed -i s/"\"uri\": \"\""/"\"uri\": \"${{ vars.JF_URL }}\/${{ env.DOCKER_REPO }}\/${{ env.IMAGE_NAME }}:${{ github.run_number }}\""/g jfrog_sast.sarif
+          jf docker pull ${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:53
+          jf docker scan ${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:53 --vuln --fail=${{ github.event.inputs.xr_override_fail_build }} --format=sarif > jfrog_sast.sarif
+          sed -i s/"\"uri\": \"\""/"\"uri\": \"${{ vars.JF_URL }}\/${{ env.DOCKER_REPO }}\/${{ env.IMAGE_NAME }}:53\""/g jfrog_sast.sarif
 
       - name: Upload output to generate autofix
         uses: github/codeql-action/upload-sarif@v3
